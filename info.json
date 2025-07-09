@@ -1,0 +1,9 @@
+{
+  "name": "batteries-not-included",
+  "version": "1.0.0",
+  "title": "Batteries Not Included",
+  "author": "Orbital917",
+  "description": "Adds an accumulator that can be recharged using batteries",
+  "factorio_version": "2.0",
+  "dependencies": ["base >= 2.0.0"]
+}
