@@ -1,105 +1,151 @@
--- Deep copy the base accumulator
-local battery_accumulator = table.deepcopy(data.raw["accumulator"]["accumulator"])
+local space_age_sounds = require("__space-age__.prototypes.entity.sounds")
+local space_age_item_sounds = require("__space-age__.prototypes.item_sounds")
 
--- Modify the copied accumulator
-battery_accumulator.name = "battery-rechargeable-accumulator"
-battery_accumulator.minable = {mining_time = 0.5, result = "battery-rechargeable-accumulator"}
-battery_accumulator.localised_name = {"entity-name.battery-rechargeable-accumulator"}
-battery_accumulator.localised_description = {"entity-description.battery-rechargeable-accumulator"}
-
--- Add purple tint to entity graphics
-battery_accumulator.picture.tint = {r = 0.8, g = 0.4, b = 1.0, a = 1.0}
-if battery_accumulator.charge_animation then
-  battery_accumulator.charge_animation.tint = {r = 0.8, g = 0.4, b = 1.0, a = 1.0}
-end
-if battery_accumulator.discharge_animation then
-  battery_accumulator.discharge_animation.tint = {r = 0.8, g = 0.4, b = 1.0, a = 1.0}
-end
-
--- Add energy source with fuel slot
-battery_accumulator.energy_source = {
-  type = "electric",
-  buffer_capacity = "5MJ",
-  usage_priority = "tertiary",
-  input_flow_limit = "300kW",
-  output_flow_limit = "300kW",
-  fuel_category = "battery-fuel",
-  fuel_inventory_size = 1,
-  burnt_inventory_size = 1
-}
-
--- Create the item
-local battery_accumulator_item = table.deepcopy(data.raw["item"]["accumulator"])
-battery_accumulator_item.name = "battery-rechargeable-accumulator"
-battery_accumulator_item.place_result = "battery-rechargeable-accumulator"
-battery_accumulator_item.localised_name = {"item-name.battery-rechargeable-accumulator"}
-battery_accumulator_item.localised_description = {"item-description.battery-rechargeable-accumulator"}
-
--- Add purple tint to item icon
-battery_accumulator_item.icon_tint = {r = 0.8, g = 0.4, b = 1.0, a = 1.0}
-
--- Create recipe
-local battery_accumulator_recipe = {
-  type = "recipe",
-  name = "battery-rechargeable-accumulator",
-  energy_required = 10,
-  enabled = false,
-  ingredients = {
-    {"accumulator", 1},
-    {"advanced-circuit", 2},
-    {"steel-plate", 5}
-  },
-  result = "battery-rechargeable-accumulator"
-}
-
--- Create fuel category for batteries
-local battery_fuel_category = {
-  type = "fuel-category",
-  name = "battery-fuel"
-}
-
--- Modify battery item to be fuel
-local battery_fuel = table.deepcopy(data.raw["item"]["battery"])
-battery_fuel.fuel_category = "battery-fuel"
-battery_fuel.fuel_value = "1MJ" -- 20% of 5MJ accumulator capacity
-battery_fuel.fuel_acceleration_multiplier = 1
-battery_fuel.fuel_top_speed_multiplier = 1
-
--- Add technology
-local battery_accumulator_tech = {
-  type = "technology",
-  name = "battery-rechargeable-accumulator",
-  icon = "__base__/graphics/technology/electric-energy-accumulators.png",
-  icon_size = 256,
-  icon_mipmaps = 4,
-  icon_tint = {r = 0.8, g = 0.4, b = 1.0, a = 1.0},
-  effects = {
-    {
-      type = "unlock-recipe",
-      recipe = "battery-rechargeable-accumulator"
-    }
-  },
-  prerequisites = {"electric-energy-accumulators", "battery"},
-  unit = {
-    count = 150,
-    ingredients = {
-      {"automation-science-pack", 1},
-      {"logistic-science-pack", 1}
-    },
-    time = 30
-  },
-  order = "c-e-b"
-}
-
--- Add all to data
+-- Create battery fuel category first
 data:extend({
-  battery_fuel_category,
-  battery_accumulator,
-  battery_accumulator_item,
-  battery_accumulator_recipe,
-  battery_accumulator_tech
+  {
+    type = "fuel-category",
+    name = "battery"
+  }
 })
 
--- Override the existing battery item
-data.raw["item"]["battery"].fuel_category = "battery-fuel"
-data.raw["item"]["battery"].fuel_value = "1MJ"
+-- Make batteries work as fuel
+data.raw["item"]["battery"].fuel_category = "battery"
+data.raw["item"]["battery"].fuel_value = "5MJ"
+data.raw["item"]["battery"].burnt_result = nil
+
+-- Create battery-powered generator using deepcopy from steam turbine
+local battery_generator = table.deepcopy(data.raw["generator"]["steam-turbine"])
+
+-- Change type to burner-generator
+battery_generator.name = "batteries-not-included"
+battery_generator.type = "burner-generator"
+
+-- Remove steam-related properties
+battery_generator.fluid_box = nil
+battery_generator.fluid_usage_per_tick = nil
+battery_generator.maximum_temperature = nil
+battery_generator.burns_fluid = nil
+battery_generator.scale_fluid_usage = nil
+battery_generator.effectivity = nil
+battery_generator.destroy_non_fuel_fluid = nil
+
+-- Copy accumulator visuals
+-- local accumulator = data.raw["accumulator"]["accumulator"]
+-- battery_generator.picture = table.deepcopy(accumulator.picture)
+-- battery_generator.charge_animation = table.deepcopy(accumulator.charge_animation)
+-- battery_generator.discharge_animation = table.deepcopy(accumulator.discharge_animation)
+
+local anim = { 
+    layers = {
+    {
+      filename = "__batteries-not-included__/graphics/battery-generator-discharge.png",
+      height = 214,
+      priority = "high",
+      frame_count = 24,
+      line_length = 6,
+      scale = 0.5,
+      shift = {
+        0,
+        -0.34375
+      },
+      tint = {
+        1,
+        1,
+        1,
+        1
+      },
+      width = 174
+    },
+    {
+      draw_as_shadow = true,
+      filename = "__base__/graphics/entity/accumulator/accumulator-shadow.png",
+      height = 106,
+      priority = "high",
+      repeat_count = 24,
+      scale = 0.5,
+      shift = {
+        0.90625,
+        0.1875
+      },
+      width = 234
+    }
+  }
+}
+
+battery_generator.animation = {        
+    east = anim,
+    north = anim,
+    south = anim,
+    west = anim,
+}
+
+-- Set 2x2 footprint (copy from accumulator)
+battery_generator.collision_box = {{-0.9, -0.9}, {0.9, 0.9}}
+battery_generator.selection_box = {{-1, -1}, {1, 1}}
+battery_generator.drawing_box = {{-1, -1.5}, {1, 1}}
+
+-- Set up the burner
+battery_generator.burner = {
+  type = "burner",
+  fuel_categories = {"battery"},
+  effectivity = 1,
+  fuel_inventory_size = 1,
+  emissions_per_minute = { pollution = 0 },
+  light_flicker = {
+    color = {0.7, 0.3, 0.9},
+    minimum_intensity = 0.1,
+    maximum_intensity = 0.3,
+  },
+  smoke = {}
+}
+
+-- Set up electric output
+battery_generator.max_power_output = "300kW"
+
+-- Update minable result
+battery_generator.minable = {mining_time = 0.2, result = "batteries-not-included"}
+
+-- Add the generator entity
+data:extend({battery_generator})
+
+-- Create the item
+local battery_generator_item = {
+    type = "item",
+    name = "batteries-not-included",
+    icon = "__batteries-not-included__/graphics/battery-generator.png",
+    place_result = "batteries-not-included",
+    subgroup = "production-machine",
+    order = "e[accumulator]-a[batteries-not-included]",
+    weight = 0.02 * tons,
+    inventory_move_sound = space_age_item_sounds.mechanical_large_inventory_move,
+	pick_sound = space_age_item_sounds.mechanical_large_inventory_pickup,
+	drop_sound = space_age_item_sounds.mechanical_large_inventory_move,
+    stack_size = 50
+}
+
+data:extend({battery_generator_item})
+
+-- Create the recipe
+data:extend({
+  {
+    type = "recipe",
+    name = "batteries-not-included",
+    enabled = false,
+    ingredients = {
+      {type = "item", name = "iron-plate", amount = 10},
+      {type = "item", name = "battery", amount = 5},
+      {type = "item", name = "electronic-circuit", amount = 5}
+    },
+    results = {{type = "item", name = "batteries-not-included", amount = 1}}
+  }
+})
+
+-- Add to accumulator technology
+table.insert(data.raw["technology"]["electric-energy-accumulators"].effects, {
+  type = "unlock-recipe",
+  recipe = "batteries-not-included"
+})
+
+-- Update description
+battery_generator.localised_description = {"", "Battery-powered generator. Insert batteries to generate electricity. Works in space!"}
