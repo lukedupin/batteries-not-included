@@ -11,11 +11,16 @@ data:extend({
 
 -- Make batteries work as fuel
 data.raw["item"]["battery"].fuel_category = "battery"
-data.raw["item"]["battery"].fuel_value = "5MJ"
+-- data.raw["item"]["battery"].fuel_value = "5MJ"
+data.raw["item"]["battery"].fuel_value = settings.startup['bni-energy-production'].value .. "MJ"
 data.raw["item"]["battery"].burnt_result = nil
 
 -- Create battery-powered generator using deepcopy from steam turbine
 local battery_generator = table.deepcopy(data.raw["generator"]["steam-turbine"])
+
+-- Set up electric output
+-- battery_generator.max_power_output = "300kW"
+battery_generator.max_power_output = settings.startup['bni-power-production'].value .. "kW"
 
 -- Change type to burner-generator
 battery_generator.name = "batteries-not-included"
@@ -99,9 +104,6 @@ battery_generator.burner = {
   },
   smoke = {}
 }
-
--- Set up electric output
-battery_generator.max_power_output = "300kW"
 
 -- Update minable result
 battery_generator.minable = {mining_time = 0.2, result = "batteries-not-included"}

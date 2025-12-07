@@ -1,6 +1,6 @@
 {
   "name": "batteries-not-included",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "title": "Batteries Not Included",
   "author": "Orbital917",
   "description": "Adds an accumulator that consumes batteries to create power",
